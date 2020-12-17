@@ -111,9 +111,9 @@ func (vn VersionNumber) StreamContributesToConnectionFlowControl(id StreamID) bo
 	if id == vn.CryptoStreamID() {
 		return false
 	}
-	if vn.isGQUIC() && id == 3 {
-		return false
-	}
+	//if vn.isGQUIC() && id == 3 {
+	//	return false
+	//}
 	return true
 }
 

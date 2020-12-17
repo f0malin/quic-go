@@ -126,6 +126,16 @@ func newStream(streamID protocol.StreamID,
 	return s
 }
 
+// LocalAddr returns the local address.
+func (s *stream) LocalAddr() net.Addr {
+	return nil
+}
+
+// RemoteAddr returns the address of the peer.
+func (s *stream) RemoteAddr() net.Addr {
+	return nil
+}
+
 // need to define StreamID() here, since both receiveStream and readStream have a StreamID()
 func (s *stream) StreamID() protocol.StreamID {
 	// the result is same for receiveStream and sendStream
