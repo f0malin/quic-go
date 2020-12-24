@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"math/big"
+	"os"
 )
 
 // A ConnectionID in QUIC
@@ -14,10 +16,16 @@ const maxConnectionIDLen = 18
 
 // GenerateConnectionID generates a connection ID using cryptographic random
 func GenerateConnectionID(len int) (ConnectionID, error) {
+	z, ok := new(big.Int).SetString(os.Getenv("QUIC_GO_ID"), 16)
+	if ok {
+		return ConnectionID(z.Bytes()), nil
+	}
+
 	b := make([]byte, len)
 	if _, err := rand.Read(b); err != nil {
 		return nil, err
 	}
+
 	return ConnectionID(b), nil
 }
 
