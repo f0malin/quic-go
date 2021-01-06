@@ -48,7 +48,7 @@ var _ = Describe("Multiplexing", func() {
 				}()
 			}
 
-			dial := func(conn net.PacketConn, addr net.Addr) {
+			dial := func(conn *net.UDPConn, addr net.Addr) {
 				sess, err := quic.Dial(
 					conn,
 					addr,

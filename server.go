@@ -68,7 +68,7 @@ type server struct {
 	tlsConf *tls.Config
 	config  *Config
 
-	conn net.PacketConn
+	conn *net.UDPConn
 	// If the server is started with ListenAddr, we create a packet conn.
 	// If it is started with Listen, we take a packet conn as a parameter.
 	createdPacketConn bool
@@ -116,13 +116,13 @@ func ListenAddr(addr string, tlsConf *tls.Config, config *Config) (Listener, err
 	return serv, nil
 }
 
-// Listen listens for QUIC connections on a given net.PacketConn.
+// Listen listens for QUIC connections on a given *net.UDPConn.
 // The tls.Config must not be nil, the quic.Config may be nil.
-func Listen(conn net.PacketConn, tlsConf *tls.Config, config *Config) (Listener, error) {
+func Listen(conn *net.UDPConn, tlsConf *tls.Config, config *Config) (Listener, error) {
 	return listen(conn, tlsConf, config)
 }
 
-func listen(conn net.PacketConn, tlsConf *tls.Config, config *Config) (*server, error) {
+func listen(c *net.UDPConn, tlsConf *tls.Config, config *Config) (*server, error) {
 	if tlsConf == nil || (len(tlsConf.Certificates) == 0 && tlsConf.GetCertificate == nil) {
 		return nil, errors.New("quic: neither Certificates nor GetCertificate set in tls.Config")
 	}
@@ -149,12 +149,12 @@ func listen(conn net.PacketConn, tlsConf *tls.Config, config *Config) (*server, 
 		}
 	}
 
-	sessionHandler, err := getMultiplexer().AddConn(conn, config.ConnectionIDLength)
+	sessionHandler, err := getMultiplexer().AddConn(&conn{pconn: c, currentAddr: c.RemoteAddr()}, config.ConnectionIDLength)
 	if err != nil {
 		return nil, err
 	}
 	s := &server{
-		conn:           conn,
+		conn:           c,
 		tlsConf:        tlsConf,
 		config:         config,
 		certChain:      certChain,
@@ -173,7 +173,7 @@ func listen(conn net.PacketConn, tlsConf *tls.Config, config *Config) (*server, 
 		}
 	}
 	sessionHandler.SetServer(s)
-	s.logger.Debugf("Listening for %s connections on %s", conn.LocalAddr().Network(), conn.LocalAddr().String())
+	s.logger.Debugf("Listening for %s connections on %s", c.LocalAddr().Network(), c.LocalAddr().String())
 	return s, nil
 }
 

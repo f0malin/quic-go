@@ -19,7 +19,7 @@ import (
 type packetHandlerMap struct {
 	mutex sync.RWMutex
 
-	conn      net.PacketConn
+	conn      *conn
 	connIDLen int
 
 	handlers map[string] /* string(ConnectionID)*/ packetHandler
@@ -33,7 +33,7 @@ type packetHandlerMap struct {
 
 var _ packetHandlerManager = &packetHandlerMap{}
 
-func newPacketHandlerMap(conn net.PacketConn, connIDLen int, logger utils.Logger) packetHandlerManager {
+func newPacketHandlerMap(conn *conn, connIDLen int, logger utils.Logger) packetHandlerManager {
 	m := &packetHandlerMap{
 		conn:                      conn,
 		connIDLen:                 connIDLen,
@@ -125,7 +125,7 @@ func (h *packetHandlerMap) listen() {
 		data = data[:protocol.MaxReceivePacketSize]
 		// The packet size should not exceed protocol.MaxReceivePacketSize bytes
 		// If it does, we only read a truncated packet, which will then end up undecryptable
-		n, addr, err := h.conn.ReadFrom(data)
+		n, addr, err := h.conn.Read(data)
 		if err != nil {
 			h.close(err)
 			return

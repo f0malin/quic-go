@@ -53,7 +53,7 @@ func (c *mockPacketConn) SetDeadline(t time.Time) error      { panic("not implem
 func (c *mockPacketConn) SetReadDeadline(t time.Time) error  { panic("not implemented") }
 func (c *mockPacketConn) SetWriteDeadline(t time.Time) error { panic("not implemented") }
 
-var _ net.PacketConn = &mockPacketConn{}
+var _ *net.UDPConn = &mockPacketConn{}
 
 var _ = Describe("Connection", func() {
 	var c *conn

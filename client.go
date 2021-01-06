@@ -20,7 +20,7 @@ import (
 type client struct {
 	mutex sync.Mutex
 
-	conn connection
+	conn *conn
 	// If the client is created with DialAddr, we create a packet conn.
 	// If it is started with Dial, we take a packet conn as a parameter.
 	createdPacketConn bool
@@ -90,10 +90,10 @@ func DialAddrContext(
 	return DialWhichContext(ctx, udpConn, udpAddr, addr, tlsConf, config, true)
 }
 
-// Dial establishes a new QUIC connection to a server using a net.PacketConn.
+// Dial establishes a new QUIC connection to a server using a *net.UDPConn.
 // The host parameter is used for SNI.
 func Dial(
-	pconn net.PacketConn,
+	pconn *net.UDPConn,
 	remoteAddr net.Addr,
 	host string,
 	tlsConf *tls.Config,
@@ -102,11 +102,11 @@ func Dial(
 	return DialContext(context.Background(), pconn, remoteAddr, host, tlsConf, config)
 }
 
-// DialContext establishes a new QUIC connection to a server using a net.PacketConn using the provided context.
+// DialContext establishes a new QUIC connection to a server using a *net.UDPConn using the provided context.
 // The host parameter is used for SNI.
 func DialContext(
 	ctx context.Context,
-	pconn net.PacketConn,
+	pconn *net.UDPConn,
 	remoteAddr net.Addr,
 	host string,
 	tlsConf *tls.Config,
@@ -117,7 +117,7 @@ func DialContext(
 
 func DialWhichContext(
 	ctx context.Context,
-	pconn net.PacketConn,
+	pconn *net.UDPConn,
 	remoteAddr net.Addr,
 	host string,
 	tlsConf *tls.Config,
@@ -132,14 +132,24 @@ func DialWhichContext(
 			}
 		}
 	}
-	packetHandlers, err := getMultiplexer().AddConn(pconn, config.ConnectionIDLength)
+
+	var connected bool
+	if pconn.RemoteAddr() != nil {
+		connected = true
+	}
+
+	cc := &conn{pconn: pconn, currentAddr: remoteAddr, connected: connected}
+
+	packetHandlers, err := getMultiplexer().AddConn(cc, config.ConnectionIDLength)
 	if err != nil {
 		return nil, err
 	}
-	c, err := newClient(pconn, remoteAddr, config, tlsConf, host, packetHandlers.Remove, createdPacketConn)
+
+	c, err := newClient(cc, remoteAddr, config, tlsConf, host, packetHandlers.Remove, createdPacketConn)
 	if err != nil {
 		return nil, err
 	}
+
 	c.packetHandlers = packetHandlers
 	if err := c.dial(ctx); err != nil {
 		return nil, err
@@ -148,7 +158,7 @@ func DialWhichContext(
 }
 
 func newClient(
-	pconn net.PacketConn,
+	pconn *conn,
 	remoteAddr net.Addr,
 	config *Config,
 	tlsConf *tls.Config,
@@ -180,7 +190,7 @@ func newClient(
 		onClose = closeCallback
 	}
 	c := &client{
-		conn:              &conn{pconn: pconn, currentAddr: remoteAddr},
+		conn:              pconn,
 		createdPacketConn: createdPacketConn,
 		tlsConf:           tlsConf,
 		config:            config,
@@ -503,6 +513,7 @@ func (c *client) createNewGQUICSession() error {
 		onHandshakeCompleteImpl: func(_ Session) { close(c.handshakeChan) },
 		removeConnectionIDImpl:  c.closeCallback,
 	}
+
 	sess, err := newClientSession(
 		c.conn,
 		runner,

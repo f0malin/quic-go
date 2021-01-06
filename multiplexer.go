@@ -2,7 +2,6 @@ package quic
 
 import (
 	"fmt"
-	"net"
 	"sync"
 
 	"github.com/lucas-clemente/quic-go/internal/utils"
@@ -14,7 +13,7 @@ var (
 )
 
 type multiplexer interface {
-	AddConn(net.PacketConn, int) (packetHandlerManager, error)
+	AddConn(*conn, int) (packetHandlerManager, error)
 }
 
 type connManager struct {
@@ -22,13 +21,13 @@ type connManager struct {
 	manager   packetHandlerManager
 }
 
-// The connMultiplexer listens on multiple net.PacketConns and dispatches
+// The connMultiplexer listens on multiple *net.UDPConns and dispatches
 // incoming packets to the session handler.
 type connMultiplexer struct {
 	mutex sync.Mutex
 
-	conns                   map[net.PacketConn]connManager
-	newPacketHandlerManager func(net.PacketConn, int, utils.Logger) packetHandlerManager // so it can be replaced in the tests
+	conns                   map[*conn]connManager
+	newPacketHandlerManager func(*conn, int, utils.Logger) packetHandlerManager // so it can be replaced in the tests
 
 	logger utils.Logger
 }
@@ -38,7 +37,7 @@ var _ multiplexer = &connMultiplexer{}
 func getMultiplexer() multiplexer {
 	connMuxerOnce.Do(func() {
 		connMuxer = &connMultiplexer{
-			conns:                   make(map[net.PacketConn]connManager),
+			conns:                   make(map[*conn]connManager),
 			logger:                  utils.DefaultLogger.WithPrefix("muxer"),
 			newPacketHandlerManager: newPacketHandlerMap,
 		}
@@ -46,7 +45,7 @@ func getMultiplexer() multiplexer {
 	return connMuxer
 }
 
-func (m *connMultiplexer) AddConn(c net.PacketConn, connIDLen int) (packetHandlerManager, error) {
+func (m *connMultiplexer) AddConn(c *conn, connIDLen int) (packetHandlerManager, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 

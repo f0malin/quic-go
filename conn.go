@@ -17,18 +17,29 @@ type connection interface {
 type conn struct {
 	mutex sync.RWMutex
 
-	pconn       net.PacketConn
+	pconn       *net.UDPConn
 	currentAddr net.Addr
+	connected   bool
 }
 
 var _ connection = &conn{}
 
 func (c *conn) Write(p []byte) error {
+	if c.connected {
+		_, err := c.pconn.Write(p)
+		return err
+	}
+
 	_, err := c.pconn.WriteTo(p, c.currentAddr)
 	return err
 }
 
 func (c *conn) Read(p []byte) (int, net.Addr, error) {
+	if c.connected {
+		read, err := c.pconn.Read(p)
+		return read, c.pconn.RemoteAddr(), err
+	}
+
 	return c.pconn.ReadFrom(p)
 }
 
@@ -43,6 +54,10 @@ func (c *conn) LocalAddr() net.Addr {
 }
 
 func (c *conn) RemoteAddr() net.Addr {
+	if c.connected {
+		return c.pconn.RemoteAddr()
+	}
+
 	c.mutex.RLock()
 	addr := c.currentAddr
 	c.mutex.RUnlock()

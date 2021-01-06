@@ -19,7 +19,7 @@ type tlsSession struct {
 }
 
 type serverTLS struct {
-	conn            net.PacketConn
+	conn            *net.UDPConn
 	config          *Config
 	mintConf        *mint.Config
 	params          *handshake.TransportParameters
@@ -34,7 +34,7 @@ type serverTLS struct {
 }
 
 func newServerTLS(
-	conn net.PacketConn,
+	conn *net.UDPConn,
 	config *Config,
 	runner sessionRunner,
 	tlsConf *tls.Config,

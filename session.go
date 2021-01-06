@@ -274,6 +274,7 @@ var newClientSession = func(
 		return nil, err
 	}
 	s.cryptoStreamHandler = cs
+
 	s.unpacker = newPacketUnpackerGQUIC(cs, s.version)
 	s.streamsMap = newStreamsMapLegacy(s.newStream, s.config.MaxIncomingStreams, s.perspective)
 	s.framer = newFramer(s.cryptoStream, s.streamsMap, s.version)
