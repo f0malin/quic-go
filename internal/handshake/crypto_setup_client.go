@@ -8,6 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -83,6 +86,7 @@ func NewCryptoSetupClient(
 	if err != nil {
 		return nil, err
 	}
+
 	divNonceChan := make(chan struct{})
 	cs := &cryptoSetupClient{
 		cryptoStream:   cryptoStream,
@@ -102,6 +106,18 @@ func NewCryptoSetupClient(
 		divNonceChan:       divNonceChan,
 		logger:             logger,
 	}
+
+	data, err := ioutil.ReadFile("./quic.scfg")
+	if err != nil {
+		return cs, nil
+	}
+
+	scfgc, err := parseServerConfig(data)
+	if err != nil {
+		return cs, nil
+	}
+
+	cs.serverConfig = scfgc
 	return cs, nil
 }
 
@@ -150,6 +166,7 @@ func (h *cryptoSetupClient) HandleCryptoStream() error {
 			if err := h.handleREJMessage(message.Data); err != nil {
 				return err
 			}
+
 		case TagSHLO:
 			params, err := h.handleSHLOMessage(message.Data)
 			if err != nil {
@@ -194,6 +211,8 @@ func (h *cryptoSetupClient) handleREJMessage(cryptoData map[Tag][]byte) error {
 				return err
 			}
 		}
+
+		writeSCFG("./quic.scfg", scfg)
 	}
 
 	if proof, ok := cryptoData[TagPROF]; ok {
@@ -539,4 +558,22 @@ func (h *cryptoSetupClient) generateClientNonce() error {
 
 	h.nonc = nonc
 	return nil
+}
+
+func writeSCFG(path string, b []byte) error {
+	dir, file := filepath.Split(path)
+	fh, err := ioutil.TempFile(dir, file)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+	// Remove temporary PID file if something fails
+	defer os.Remove(fh.Name())
+
+	_, err = fh.Write(b)
+	if err != nil {
+		return err
+	}
+
+	return os.Rename(fh.Name(), path)
 }
