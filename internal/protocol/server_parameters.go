@@ -30,19 +30,19 @@ const PublicResetTimeout = 500 * time.Millisecond
 
 // ReceiveStreamFlowControlWindow is the stream-level flow control window for receiving data
 // This is the value that Google servers are using
-const ReceiveStreamFlowControlWindow = (1 << 10) * 32 // 32 kB
+const ReceiveStreamFlowControlWindow = (1 << 20) * 6 // 6 MB
 
 // ReceiveConnectionFlowControlWindow is the connection-level flow control window for receiving data
 // This is the value that Google servers are using
-const ReceiveConnectionFlowControlWindow = (1 << 10) * 48 // 48 kB
+const ReceiveConnectionFlowControlWindow = (1 << 20) * 15 // 15 MB
 
 // DefaultMaxReceiveStreamFlowControlWindowServer is the default maximum stream-level flow control window for receiving data, for the server
 // This is the value that Google servers are using
-const DefaultMaxReceiveStreamFlowControlWindowServer = 1 * (1 << 20) // 1 MB
+const DefaultMaxReceiveStreamFlowControlWindowServer = 6 * (1 << 20) // 6 MB
 
 // DefaultMaxReceiveConnectionFlowControlWindowServer is the default connection-level flow control window for receiving data, for the server
 // This is the value that Google servers are using
-const DefaultMaxReceiveConnectionFlowControlWindowServer = 1.5 * (1 << 20) // 1.5 MB
+const DefaultMaxReceiveConnectionFlowControlWindowServer = 15 * (1 << 20) // 15 MB
 
 // DefaultMaxReceiveStreamFlowControlWindowClient is the default maximum stream-level flow control window for receiving data, for the client
 // This is the value that Chromium is using
