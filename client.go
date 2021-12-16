@@ -379,7 +379,7 @@ func (c *client) handlePacket(p *receivedPacket) {
 }
 
 func (c *client) handlePacketImpl(p *receivedPacket) error {
-	fmt.Printf("====  ver=%d len=%d pn=%d %s\n",p.header.Version, len(p.data), p.header.PacketNumber, string(p.data))
+	// fmt.Printf("====  ver=%d len=%d pn=%d %s\n",p.header.Version, len(p.data), p.header.PacketNumber, string(p.data))
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 

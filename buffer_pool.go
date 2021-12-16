@@ -1,7 +1,6 @@
 package quic
 
 import (
-	"fmt"
 	"github.com/lucas-clemente/quic-go/internal/protocol"
 	"sync"
 )
@@ -9,7 +8,7 @@ import (
 var bufferPool sync.Pool
 
 func getPacketBuffer() *[]byte {
-	fmt.Printf("---- getting package buf -----\n")
+	// fmt.Printf("---- getting package buf -----\n")
 	return bufferPool.Get().(*[]byte)
 }
 

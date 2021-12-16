@@ -2,8 +2,6 @@ package quic
 
 import (
 	"bytes"
-	"fmt"
-
 	"github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/lucas-clemente/quic-go/internal/wire"
 	"github.com/lucas-clemente/quic-go/qerr"
@@ -120,8 +118,6 @@ func (u *packetUnpacker) Unpack(headerBinary []byte, hdr *wire.Header, data []by
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Printf("---- unpacking elevel=%d\n", encryptionLevel)
 
 	return &unpackedPacket{
 		encryptionLevel: encryptionLevel,

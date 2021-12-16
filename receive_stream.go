@@ -213,6 +213,7 @@ func (s *receiveStream) CancelRead(errorCode protocol.ApplicationErrorCode) erro
 }
 
 func (s *receiveStream) handleStreamFrame(frame *wire.StreamFrame) error {
+	//fmt.Printf("frame %d,%d,%d\n", frame.StreamID, frame.Offset, frame.DataLen())
 	maxOffset := frame.Offset + frame.DataLen()
 	if err := s.flowController.UpdateHighestReceived(maxOffset, frame.FinBit); err != nil {
 		return err

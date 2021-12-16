@@ -122,7 +122,7 @@ func (h *packetHandlerMap) close(e error) error {
 func (h *packetHandlerMap) listen() {
 	for {
 		data := *getPacketBuffer()
-		fmt.Printf("---- getting package buff 2222 ------\n")
+		// fmt.Printf("---- getting package buff 2222 ------\n")
 		data = data[:protocol.MaxReceivePacketSize]
 		// The packet size should not exceed protocol.MaxReceivePacketSize bytes
 		// If it does, we only read a truncated packet, which will then end up undecryptable
@@ -132,7 +132,6 @@ func (h *packetHandlerMap) listen() {
 			return
 		}
 		data = data[:n]
-
 
 		if err := h.handlePacket(addr, data); err != nil {
 			h.logger.Debugf("error handling packet from %s: %s", addr, err)

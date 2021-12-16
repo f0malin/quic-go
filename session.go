@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -448,8 +449,6 @@ func (s *session) postSetup() error {
 func (s *session) run() error {
 	defer s.ctxCancel()
 
-	fmt.Println("------- ddddddddd ------------")
-
 	go func() {
 		if err := s.cryptoStreamHandler.HandleCryptoStream(); err != nil {
 			s.closeLocal(err)
@@ -467,7 +466,6 @@ runLoop:
 			break runLoop
 		case _, ok := <-s.handshakeEvent:
 			// when the handshake is completed, the channel will be closed
-			fmt.Println("--------------- handshake finish -----------------------")
 			s.handleHandshakeEvent(!ok)
 		default:
 		}
@@ -487,10 +485,10 @@ runLoop:
 		case p := <-s.receivedPackets:
 			// fmt.Println("---- packet -------")
 			err := s.handlePacketImpl(p)
-			fmt.Printf("----  ver=%d len=%d pn=%d %s\n",p.header.Version, len(p.data), p.header.PacketNumber, string(p.data))
+			// fmt.Printf("----  ver=%d len=%d pn=%d %s\n",p.header.Version, len(p.data), p.header.PacketNumber, string(p.data))
 			if err != nil {
 				if qErr, ok := err.(*qerr.QuicError); ok && qErr.ErrorCode == qerr.DecryptionFailure {
-					fmt.Printf("---- tryQueueingUndecryptablePacket --\n")
+					// fmt.Printf("---- tryQueueingUndecryptablePacket --\n")
 					s.tryQueueingUndecryptablePacket(p)
 					continue
 				}
@@ -505,7 +503,7 @@ runLoop:
 			continue
 		case _, ok := <-s.handshakeEvent:
 			// when the handshake is completed, the channel will be closed
-			fmt.Println("----- handshake 2 -----")
+			// fmt.Println("----- handshake 2 -----")
 			s.handleHandshakeEvent(!ok)
 		}
 
@@ -698,8 +696,10 @@ func (s *session) handlePacketImpl(p *receivedPacket) error {
 			return err
 		}
 	}
-
-	return s.handleFrames(packet.frames, packet.encryptionLevel)
+	fmt.Printf("%s,in,%d,", p.rcvTime.Format(time.StampMicro), p.header.PacketNumber)
+	ret := s.handleFrames(packet.frames, packet.encryptionLevel)
+	fmt.Println()
+	return ret
 }
 
 func (s *session) handleFrames(fs []wire.Frame, encLevel protocol.EncryptionLevel) error {
@@ -709,8 +709,13 @@ func (s *session) handleFrames(fs []wire.Frame, encLevel protocol.EncryptionLeve
 		switch frame := ff.(type) {
 		case *wire.StreamFrame:
 			err = s.handleStreamFrame(frame, encLevel)
+			fmt.Printf("stream,%d,%d,%d,", frame.StreamID, frame.Offset, frame.DataLen())
+			if strings.Contains(string(frame.Data), "HTTP") {
+				fmt.Print("HTTP,")
+			}
 		case *wire.AckFrame:
 			err = s.handleAckFrame(frame, encLevel)
+			fmt.Printf("ack,%d,", frame.DelayTime)
 		case *wire.ConnectionCloseFrame:
 			s.closeRemote(qerr.Error(frame.ErrorCode, frame.ReasonPhrase))
 		case *wire.GoawayFrame:
@@ -761,7 +766,7 @@ func (s *session) handleStreamFrame(frame *wire.StreamFrame, encLevel protocol.E
 		if frame.FinBit {
 			return errors.New("Received STREAM frame with FIN bit for the crypto stream")
 		}
-		fmt.Printf("999999\n")
+		//fmt.Printf("999999\n")
 		return s.cryptoStream.handleStreamFrame(frame)
 	} else if encLevel <= protocol.EncryptionUnencrypted {
 		return qerr.Error(qerr.UnencryptedStreamData, fmt.Sprintf("received unencrypted stream data on stream %d", frame.StreamID))
@@ -775,7 +780,7 @@ func (s *session) handleStreamFrame(frame *wire.StreamFrame, encLevel protocol.E
 		// ignore this StreamFrame
 		return nil
 	}
-	fmt.Printf("888888\n")
+	//fmt.Printf("888888\n")
 	return str.handleStreamFrame(frame)
 }
 
