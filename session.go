@@ -448,6 +448,8 @@ func (s *session) postSetup() error {
 func (s *session) run() error {
 	defer s.ctxCancel()
 
+	fmt.Println("------- ddddddddd ------------")
+
 	go func() {
 		if err := s.cryptoStreamHandler.HandleCryptoStream(); err != nil {
 			s.closeLocal(err)
@@ -458,13 +460,14 @@ func (s *session) run() error {
 
 runLoop:
 	for {
-
+		// fmt.Println("---- for -----")
 		// Close immediately if requested
 		select {
 		case closeErr = <-s.closeChan:
 			break runLoop
 		case _, ok := <-s.handshakeEvent:
 			// when the handshake is completed, the channel will be closed
+			fmt.Println("--------------- handshake finish -----------------------")
 			s.handleHandshakeEvent(!ok)
 		default:
 		}
@@ -482,9 +485,12 @@ runLoop:
 			// We do all the interesting stuff after the switch statement, so
 			// nothing to see here.
 		case p := <-s.receivedPackets:
+			// fmt.Println("---- packet -------")
 			err := s.handlePacketImpl(p)
+			fmt.Printf("----  ver=%d len=%d pn=%d %s\n",p.header.Version, len(p.data), p.header.PacketNumber, string(p.data))
 			if err != nil {
 				if qErr, ok := err.(*qerr.QuicError); ok && qErr.ErrorCode == qerr.DecryptionFailure {
+					fmt.Printf("---- tryQueueingUndecryptablePacket --\n")
 					s.tryQueueingUndecryptablePacket(p)
 					continue
 				}
@@ -499,6 +505,7 @@ runLoop:
 			continue
 		case _, ok := <-s.handshakeEvent:
 			// when the handshake is completed, the channel will be closed
+			fmt.Println("----- handshake 2 -----")
 			s.handleHandshakeEvent(!ok)
 		}
 
@@ -617,6 +624,7 @@ func (s *session) handlePacketImpl(p *receivedPacket) error {
 	hdr := p.header
 	// The server can change the source connection ID with the first Handshake packet.
 	// After this, all packets with a different source connection have to be ignored.
+	// fmt.Printf("****  ver=%d len=%d pn=%d %s\n",p.header.Version, len(p.data), p.header.PacketNumber, string(p.data))
 	if s.receivedFirstPacket && hdr.IsLongHeader && !hdr.SrcConnectionID.Equal(s.destConnID) {
 		s.logger.Debugf("Dropping packet with unexpected source connection ID: %s (expected %s)", p.header.SrcConnectionID, s.destConnID)
 		return nil
@@ -753,6 +761,7 @@ func (s *session) handleStreamFrame(frame *wire.StreamFrame, encLevel protocol.E
 		if frame.FinBit {
 			return errors.New("Received STREAM frame with FIN bit for the crypto stream")
 		}
+		fmt.Printf("999999\n")
 		return s.cryptoStream.handleStreamFrame(frame)
 	} else if encLevel <= protocol.EncryptionUnencrypted {
 		return qerr.Error(qerr.UnencryptedStreamData, fmt.Sprintf("received unencrypted stream data on stream %d", frame.StreamID))
@@ -766,6 +775,7 @@ func (s *session) handleStreamFrame(frame *wire.StreamFrame, encLevel protocol.E
 		// ignore this StreamFrame
 		return nil
 	}
+	fmt.Printf("888888\n")
 	return str.handleStreamFrame(frame)
 }
 

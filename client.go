@@ -375,9 +375,11 @@ func (c *client) handlePacket(p *receivedPacket) {
 	if err := c.handlePacketImpl(p); err != nil {
 		c.logger.Errorf("error handling packet: %s", err)
 	}
+	// fmt.Printf("--- handlePacket len=%d, pn=%d\n", len(p.data), p.header.PacketNumber)
 }
 
 func (c *client) handlePacketImpl(p *receivedPacket) error {
+	fmt.Printf("====  ver=%d len=%d pn=%d %s\n",p.header.Version, len(p.data), p.header.PacketNumber, string(p.data))
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
